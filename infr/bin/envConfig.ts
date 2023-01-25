@@ -11,7 +11,7 @@ export const deployEnvConfig: { [index: string]: any;} = {
         vpcId: 'vpc-00734a9f1fb874cfa',
         mainInstanceCount: 2,
         minInstanceCount: 1,
-        maxInstanceCount: 3,
+        maxInstanceCount: 10,
         maxInstanceCpuThreshold: 40
     },
     'dev': {

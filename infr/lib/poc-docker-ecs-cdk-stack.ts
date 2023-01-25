@@ -26,12 +26,15 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
         default: config.githubRepoName
     })
 
-    const githubPersonalTokenSecretName = new cdk.CfnParameter(this, "githubPersonalTokenSecret", {
+    const githubPersonalTokenSecret = new cdk.CfnParameter(this, "githubPersonalTokenSecret", {
         type: "String",
         description: "GitHub Personal Access Token for this project.",
     })
 
-    const ecrRepo = new ecr.Repository(this, `${config.stackPrefix}-EcrRepo`);
+    // TODO: Update removalPolicy based on env
+    const ecrRepo = new ecr.Repository(this, `${config.stackPrefix}-EcrRepo`, {
+      removalPolicy: cdk.RemovalPolicy.DESTROY
+    });
 
     const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
       vpcId: config.vpcId
@@ -116,8 +119,8 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     });
     scaling.scaleOnCpuUtilization(`${config.stackPrefix}-CpuScale`, {
       targetUtilizationPercent: config.maxInstanceCpuThreshold,
-      scaleInCooldown: cdk.Duration.seconds(60),
-      scaleOutCooldown: cdk.Duration.seconds(60)
+      // scaleInCooldown: cdk.Duration.seconds(60),
+      // scaleOutCooldown: cdk.Duration.seconds(60)
     });
 
 
@@ -196,13 +199,14 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
 
     const sourceOutput = new codepipeline.Artifact();
     const buildOutput = new codepipeline.Artifact();
-    const nameOfGithubPersonTokenParameterAsString = githubPersonalTokenSecretName.valueAsString
+
+    // TODO: update oauthToken to use secret
     const sourceAction = new codepipeline_actions.GitHubSourceAction({
       actionName: 'github_source',
       owner: githubUserName.valueAsString,
       repo: githubRepository.valueAsString,
       branch: 'main',
-      oauthToken: cdk.SecretValue.secretsManager(nameOfGithubPersonTokenParameterAsString),
+      oauthToken: cdk.SecretValue.unsafePlainText(githubPersonalTokenSecret.valueAsString),
       output: sourceOutput
     });
 
