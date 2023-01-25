@@ -9,7 +9,9 @@ import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
 import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import { Construct } from 'constructs';
 
-export class EcsCdkStack extends cdk.Stack {
+import { config } from '../bin/envConfig';
+
+export class POCDockerEcsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -21,37 +23,36 @@ export class EcsCdkStack extends cdk.Stack {
     const githubRepository = new cdk.CfnParameter(this, "githubRespository", {
         type: "String",
         description: "Github source code repository",
-        default: "amazon-ecs-fargate-cdk-v2-cicd" 
+        default: config.githubRepoName
     })
 
-    const githubPersonalTokenSecretName = new cdk.CfnParameter(this, "githubPersonalTokenSecretName", {
+    const githubPersonalTokenSecretName = new cdk.CfnParameter(this, "githubPersonalTokenSecret", {
         type: "String",
-        description: "The name of the AWS Secrets Manager Secret which holds the GitHub Personal Access Token for this project.",
-        default: "/aws-samples/amazon-ecs-fargate-cdk-v2-cicd/github/personal_access_token" 
+        description: "GitHub Personal Access Token for this project.",
     })
-    //default: `${this.stackName}`
 
-    const ecrRepo = new ecr.Repository(this, 'ecrRepo');
+    const ecrRepo = new ecr.Repository(this, `${config.stackPrefix}-EcrRepo`);
 
-    /**
-     * create a new vpc with single nat gateway
-     */
-    const vpc = new ec2.Vpc(this, 'ecs-cdk-vpc', {
-      cidr: '10.0.0.0/16',
-      natGateways: 1,
-      maxAzs: 3  /* does a sample need 3 az's? */
-    });
+    const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
+      vpcId: config.vpcId
+    })
+    console.log("\nAVAILABILITY ZONES:")
+    vpc.availabilityZones.forEach(val => console.log(val))
+    console.log("\nSUBNETS:")
+    vpc.publicSubnets.forEach(val => console.log(val))
 
-    const clusteradmin = new iam.Role(this, 'adminrole', {
+    console.log(`VPC_LOOKUP: ${ vpc ? 'success' : 'failed' }`)
+
+    const clusteradmin = new iam.Role(this, `${config.stackPrefix}-AdminRole`, {
       assumedBy: new iam.AccountRootPrincipal()
     });
 
-    const cluster = new ecs.Cluster(this, "ecs-cluster", {
+    const cluster = new ecs.Cluster(this, `${config.stackPrefix}-EcsCluster`, {
       vpc: vpc,
     });
 
     const logging = new ecs.AwsLogDriver({
-      streamPrefix: "ecs-logs"
+      streamPrefix: `${config.stackPrefix}-logs`
     });
 
     const taskrole = new iam.Role(this, `ecs-taskrole-${this.stackName}`, {
@@ -76,14 +77,16 @@ export class EcsCdkStack extends cdk.Stack {
             ]
     });
 
-    const taskDef = new ecs.FargateTaskDefinition(this, "ecs-taskdef", {
+    const taskDef = new ecs.FargateTaskDefinition(this, `${config.stackPrefix}-EcsTaskdef`, {
       taskRole: taskrole
     });
 
     taskDef.addToExecutionRolePolicy(executionRolePolicy);
 
-    const baseImage = 'public.ecr.aws/amazonlinux/amazonlinux:2022'
-    const container = taskDef.addContainer('flask-app', {
+    // TODO: Set base image
+    // TODO: Configurable settings/env
+    const baseImage = 'continuumio/conda-ci-linux-64-python3.8'
+    const container = taskDef.addContainer('docker-app', {
       image: ecs.ContainerImage.fromRegistry(baseImage),
       memoryLimitMiB: 256,
       cpu: 256,
@@ -91,39 +94,41 @@ export class EcsCdkStack extends cdk.Stack {
     });
 
     container.addPortMappings({
-      containerPort: 5000,
+      containerPort: config.dockerAppPort,
       protocol: ecs.Protocol.TCP
     });
 
-    const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, "ecs-service", {
+    // TODO: Listener port for...?
+    const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, `${config.stackPrefix}-EcsServ`, {
       cluster: cluster,
       taskDefinition: taskDef,
       publicLoadBalancer: true,
-      desiredCount: 1,
-      listenerPort: 80
+      desiredCount: config.mainInstanceCount,
+      listenerPort: 80,
+      enableECSManagedTags: false // TODO: Revisit if needed, https://github.com/aws/aws-cdk/issues/3844 
     });
 
 
-    /* where do these constants come from? 6, 10, 60? */
-
-    const scaling = fargateService.service.autoScaleTaskCount({ maxCapacity: 6 });
-    scaling.scaleOnCpuUtilization('cpuscaling', {
-      targetUtilizationPercent: 10,
+   // TODO: Default scaling behavior?
+    const scaling = fargateService.service.autoScaleTaskCount({ 
+      minCapacity: config.minInstanceCount,
+      maxCapacity: config.maxInstanceCount
+    });
+    scaling.scaleOnCpuUtilization(`${config.stackPrefix}-CpuScale`, {
+      targetUtilizationPercent: config.maxInstanceCpuThreshold,
       scaleInCooldown: cdk.Duration.seconds(60),
       scaleOutCooldown: cdk.Duration.seconds(60)
     });
 
 
-
-
-
     const gitHubSource = codebuild.Source.gitHub({
       owner: githubUserName.valueAsString,
       repo: githubRepository.valueAsString,
-      webhook: true, // optional, default: true if `webhookfilteres` were provided, false otherwise
+      webhook: true, 
       webhookFilters: [
-        codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH).andBranchIs('main'),
-      ], // optional, by default all pushes and pull requests will trigger a build
+        // TODO: Add filter to Github hook? Default is all pushes, all branches/PRs
+        //codebuild.FilterGroup.inEventOf(codebuild.EventAction.PUSH).andBranchIs('main'),
+      ], 
     });
 
     // codebuild - project
@@ -135,6 +140,7 @@ export class EcsCdkStack extends cdk.Stack {
         privileged: true
       },
       environmentVariables: {
+        // TODO: Read and generate env vars for build?
         'cluster_name': {
           value: `${cluster.clusterName}`
         },
@@ -143,7 +149,7 @@ export class EcsCdkStack extends cdk.Stack {
         }
       },
       badge: true,
-      // TODO - I had to hardcode tag here
+      // TODO - hardcoded tag?
       buildSpec: codebuild.BuildSpec.fromObject({
         version: "0.2",
         phases: {
@@ -161,7 +167,7 @@ export class EcsCdkStack extends cdk.Stack {
           },
           build: {
             commands: [
-              'cd flask-docker-app',
+              'cd docker-app',
               `docker build -t $ecr_repo_uri:$tag .`,
               '$(aws ecr get-login --no-include-email)',
               'docker push $ecr_repo_uri:$tag'
@@ -171,7 +177,7 @@ export class EcsCdkStack extends cdk.Stack {
             commands: [
               'echo "in post-build stage"',
               'cd ..',
-              "printf '[{\"name\":\"flask-app\",\"imageUri\":\"%s\"}]' $ecr_repo_uri:$tag > imagedefinitions.json",
+              "printf '[{\"name\":\"docker-app\",\"imageUri\":\"%s\"}]' $ecr_repo_uri:$tag > imagedefinitions.json",
               "pwd; ls -al; cat imagedefinitions.json"
             ]
           }
@@ -220,10 +226,8 @@ export class EcsCdkStack extends cdk.Stack {
 
 
     // pipeline stages
-
-
-    // NOTE - Approve action is commented out!
-    new codepipeline.Pipeline(this, 'myecspipeline', {
+    // TODO: Add integration-test phase?
+    const pipeline = new codepipeline.Pipeline(this, 'myecspipeline', {
       stages: [
         {
           stageName: 'source',
@@ -243,6 +247,9 @@ export class EcsCdkStack extends cdk.Stack {
         }
       ]
     });
+
+    // TODO: Revisit if needed, https://github.com/aws/aws-cdk/issues/3844 
+    pipeline.role.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2ContainerServiceforEC2Role'))
 
 
     ecrRepo.grantPullPush(project.role!)
