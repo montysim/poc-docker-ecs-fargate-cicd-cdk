@@ -31,12 +31,6 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
         description: "GitHub Personal Access Token for this project.",
     })
 
-    const vpc = new ec2.Vpc(this, `${config.stackPrefix}-VPC`, {
-      cidr: '10.0.0.0/16',
-      natGateways: 1,
-      maxAzs: 3  /* does a sample need 3 az's? */
-    });
-
     // TODO: Update removalPolicy based on env
     // TODO: RemovalPolicy destroy wont if images exist
     const ecrRepo = new ecr.Repository(this, `${config.stackPrefix}-EcrRepo`, {
@@ -46,6 +40,12 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     // const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
     //   vpcId: config.vpcId
     // })
+
+    const vpc = new ec2.Vpc(this, `${config.stackPrefix}-VPC`, {
+      cidr: '10.21.0.0/16',
+      natGateways: 1,
+      maxAzs: 3  /* does a sample need 3 az's? */
+    });
 
 
     // TODO: Check found count AZ/Subnets == 2
@@ -116,8 +116,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, `${config.stackPrefix}-EcsServ`, {
       cluster: cluster,
       taskDefinition: taskDef,
-      publicLoadBalancer: true,
-      openListener: true,
+      publicLoadBalancer: false,
       //loadBalancer: // lookup
       desiredCount: config.mainInstanceCount,
       listenerPort: 80,
