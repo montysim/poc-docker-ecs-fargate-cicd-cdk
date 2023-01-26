@@ -32,6 +32,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     })
 
     // TODO: Update removalPolicy based on env
+    // TODO: RemovalPolicy destroy wont if images exist
     const ecrRepo = new ecr.Repository(this, `${config.stackPrefix}-EcrRepo`, {
       removalPolicy: cdk.RemovalPolicy.DESTROY
     });
@@ -39,10 +40,15 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
       vpcId: config.vpcId
     })
+
+
+    // TODO: Check found count AZ/Subnets == 2
     console.log("\nAVAILABILITY ZONES:")
     vpc.availabilityZones.forEach(val => console.log(val))
-    console.log("\nSUBNETS:")
+    console.log("\nPUBLIC SUBNETS:")
     vpc.publicSubnets.forEach(val => console.log(val))
+    console.log("\nPRIVATE SUBNETS:")
+    vpc.privateSubnets.forEach(val => console.log(val))
 
     console.log(`VPC_LOOKUP: ${ vpc ? 'success' : 'failed' }`)
 
@@ -63,8 +69,6 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
     });
 
-
-
     // ***ecs contructs***
 
     const executionRolePolicy =  new iam.PolicyStatement({
@@ -81,18 +85,20 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     });
 
     const taskDef = new ecs.FargateTaskDefinition(this, `${config.stackPrefix}-EcsTaskdef`, {
-      taskRole: taskrole
+      taskRole: taskrole,
     });
 
     taskDef.addToExecutionRolePolicy(executionRolePolicy);
 
     // TODO: Set base image
     // TODO: Configurable settings/env
+    // TODO: Inject secrets into container
+    // TODO: Set health check url for Task
     const baseImage = 'continuumio/conda-ci-linux-64-python3.8'
     const container = taskDef.addContainer('docker-app', {
       image: ecs.ContainerImage.fromRegistry(baseImage),
-      memoryLimitMiB: 256,
-      cpu: 256,
+      // memoryLimitMiB: 256,
+      // cpu: 256,
       logging
     });
 
@@ -101,21 +107,25 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       protocol: ecs.Protocol.TCP
     });
 
-    // TODO: Listener port for...?
     const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, `${config.stackPrefix}-EcsServ`, {
       cluster: cluster,
       taskDefinition: taskDef,
-      publicLoadBalancer: true,
+      publicLoadBalancer: false,
+      openListener: true,
+      //loadBalancer: // lookup
       desiredCount: config.mainInstanceCount,
       listenerPort: 80,
       enableECSManagedTags: false // TODO: Revisit if needed, https://github.com/aws/aws-cdk/issues/3844 
     });
 
+    // https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html#deregistration-delay
+    fargateService.targetGroup.setAttribute('deregistration_delay.timeout_seconds', '10');
+
 
    // TODO: Default scaling behavior?
     const scaling = fargateService.service.autoScaleTaskCount({ 
       minCapacity: config.minInstanceCount,
-      maxCapacity: config.maxInstanceCount
+      maxCapacity: config.maxInstanceCount,
     });
     scaling.scaleOnCpuUtilization(`${config.stackPrefix}-CpuScale`, {
       targetUtilizationPercent: config.maxInstanceCpuThreshold,
@@ -135,6 +145,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     });
 
     // codebuild - project
+    // TODO: buildImage optimize?
     const project = new codebuild.Project(this, 'myProject', {
       projectName: `${this.stackName}`,
       source: gitHubSource,
