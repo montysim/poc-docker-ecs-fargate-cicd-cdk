@@ -31,15 +31,21 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
         description: "GitHub Personal Access Token for this project.",
     })
 
+    const vpc = new ec2.Vpc(this, `${config.stackPrefix}-VPC`, {
+      cidr: '10.0.0.0/16',
+      natGateways: 1,
+      maxAzs: 3  /* does a sample need 3 az's? */
+    });
+
     // TODO: Update removalPolicy based on env
     // TODO: RemovalPolicy destroy wont if images exist
     const ecrRepo = new ecr.Repository(this, `${config.stackPrefix}-EcrRepo`, {
       removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
-    const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
-      vpcId: config.vpcId
-    })
+    // const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
+    //   vpcId: config.vpcId
+    // })
 
 
     // TODO: Check found count AZ/Subnets == 2
@@ -110,7 +116,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, `${config.stackPrefix}-EcsServ`, {
       cluster: cluster,
       taskDefinition: taskDef,
-      publicLoadBalancer: false,
+      publicLoadBalancer: true,
       openListener: true,
       //loadBalancer: // lookup
       desiredCount: config.mainInstanceCount,
@@ -283,8 +289,5 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     new cdk.CfnOutput(this, "image", { value: ecrRepo.repositoryUri+":latest"} )
     new cdk.CfnOutput(this, 'loadbalancerdns', { value: fargateService.loadBalancer.loadBalancerDnsName });
   }
-
-
-
 
 }

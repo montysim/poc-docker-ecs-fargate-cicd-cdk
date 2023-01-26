@@ -34,7 +34,7 @@ export const config = {
     stackPrefix: constructPrefix,
     githubRepoName: 'poc-docker-ecs-fargate-cicd-cdk',
     vpcId: deployEnvConfig[env].vpcId,
-    dockerAppPort: 80,
+    dockerAppPort: 8001,
     mainInstanceCount: deployEnvConfig[env].mainInstanceCount || 1,
     minInstanceCount: deployEnvConfig[env].minInstanceCount || 1,
     maxInstanceCount: deployEnvConfig[env].maxInstanceCount || 1,

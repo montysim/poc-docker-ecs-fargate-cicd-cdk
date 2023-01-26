@@ -43,4 +43,4 @@ RUN sudo chown -R verisim:verisim /app
 
 # ENTRYPOINT [ "/bin/bash", "-l", "-c" ]
 
-ENTRYPOINT ["/opt/conda/envs/vsl3.8/bin/python", "manage.py", "runserver", "0.0.0.0:80"]
+ENTRYPOINT ["/opt/conda/envs/vsl3.8/bin/python", "manage.py", "runserver", "0.0.0.0:8001"]
