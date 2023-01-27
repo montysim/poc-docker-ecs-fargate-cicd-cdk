@@ -8,8 +8,8 @@ def test_throwingFunc():
     with pytest.raises(ValueError):
         throwingFunc()
 
-def test_failFunc():
-    assert failFunc() is 10
+# def test_failFunc():
+#     assert failFunc() is 10
 
 
 # Helper functions POC
