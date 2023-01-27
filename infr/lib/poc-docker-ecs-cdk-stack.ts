@@ -10,6 +10,7 @@ import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import { Construct } from 'constructs';
 
 import { config } from '../bin/envConfig';
+import { buildspec } from './buildspec';
 
 export class POCDockerEcsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -117,10 +118,9 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       cluster: cluster,
       taskDefinition: taskDef,
       publicLoadBalancer: false,
-      //loadBalancer: // lookup
       desiredCount: config.mainInstanceCount,
       listenerPort: 80,
-      enableECSManagedTags: false // TODO: Revisit if needed, https://github.com/aws/aws-cdk/issues/3844 
+      //enableECSManagedTags: false // TODO: Revisit if needed, https://github.com/aws/aws-cdk/issues/3844 
     });
 
     // https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html#deregistration-delay
@@ -134,8 +134,8 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     });
     scaling.scaleOnCpuUtilization(`${config.stackPrefix}-CpuScale`, {
       targetUtilizationPercent: config.maxInstanceCpuThreshold,
-      // scaleInCooldown: cdk.Duration.seconds(60),
-      // scaleOutCooldown: cdk.Duration.seconds(60)
+      scaleInCooldown: cdk.Duration.seconds(60),
+      scaleOutCooldown: cdk.Duration.seconds(60)
     });
 
 
@@ -169,44 +169,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       },
       badge: true,
       // TODO - hardcoded tag?
-      buildSpec: codebuild.BuildSpec.fromObject({
-        version: "0.2",
-        phases: {
-          pre_build: {
-            /*
-            commands: [
-              'env',
-              'export tag=${CODEBUILD_RESOLVED_SOURCE_VERSION}'
-            ]
-            */
-            commands: [
-              'env',
-              'export tag=latest'
-            ]
-          },
-          build: {
-            commands: [
-              'cd docker-app',
-              `docker build -t $ecr_repo_uri:$tag .`,
-              '$(aws ecr get-login --no-include-email)',
-              'docker push $ecr_repo_uri:$tag'
-            ]
-          },
-          post_build: {
-            commands: [
-              'echo "in post-build stage"',
-              'cd ..',
-              "printf '[{\"name\":\"docker-app\",\"imageUri\":\"%s\"}]' $ecr_repo_uri:$tag > imagedefinitions.json",
-              "pwd; ls -al; cat imagedefinitions.json"
-            ]
-          }
-        },
-        artifacts: {
-          files: [
-            'imagedefinitions.json'
-          ]
-        }
-      })
+      buildSpec: codebuild.BuildSpec.fromObject(buildspec)
     });
 
 
@@ -243,6 +206,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       imageFile: new codepipeline.ArtifactPath(buildOutput, `imagedefinitions.json`)
     });
 
+    //codepipeline_actions.CloudFormationCreateReplaceChangeSetAction({})
 
 
     // pipeline stages
