@@ -37,15 +37,15 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
-    // const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
-    //   vpcId: config.vpcId
-    // })
+    const vpc = ec2.Vpc.fromLookup(this, `${config.stackPrefix}-VPC`, {
+      vpcId: config.vpcId
+    })
 
-    const vpc = new ec2.Vpc(this, `${config.stackPrefix}-VPC`, {
-      cidr: '10.21.0.0/16',
-      natGateways: 1,
-      maxAzs: 3  /* does a sample need 3 az's? */
-    });
+    // const vpc = new ec2.Vpc(this, `${config.stackPrefix}-VPC`, {
+    //   cidr: '10.21.0.0/16',
+    //   natGateways: 1,
+    //   maxAzs: 3  /* does a sample need 3 az's? */
+    // });
 
 
     // TODO: Check found count AZ/Subnets == 2
