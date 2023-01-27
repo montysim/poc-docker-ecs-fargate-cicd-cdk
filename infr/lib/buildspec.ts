@@ -40,9 +40,9 @@ export const buildspec = {
   reports: {
     pytest_reports: {
       files: [
-        'unit-test'
+        'unittest.xml'
       ],
-      'base-directory': 'reports',
+      'base-directory': 'docker-app/reports',
       'file-format': 'JUNITXML'
     }
   }

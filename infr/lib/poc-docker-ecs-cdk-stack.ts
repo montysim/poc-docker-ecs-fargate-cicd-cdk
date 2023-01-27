@@ -149,6 +149,14 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       ], 
     });
 
+    const topic = new cdk.aws_sns.Topic(this, 'SlackNotificationTopic');
+
+    const slack = new cdk.aws_chatbot.SlackChannelConfiguration(this, 'MySlackChannelBot', {
+      slackChannelConfigurationName: 'poc-aws-builds',
+      slackWorkspaceId: 'T7TPPJVC1',
+      slackChannelId: 'C04LG5GT5C7',
+    });
+
     // codebuild - project
     // TODO: buildImage optimize?
     const project = new codebuild.Project(this, 'myProject', {
@@ -171,6 +179,16 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       // TODO - hardcoded tag?
       buildSpec: codebuild.BuildSpec.fromObject(buildspec)
     });
+
+    const rule = new cdk.aws_codestarnotifications.NotificationRule(this, 'NotificationRule', {
+      source: project,
+      events: [
+        'codebuild-project-build-state-succeeded',
+        'codebuild-project-build-state-failed',
+      ],
+      targets: [topic],
+    });
+    rule.addTarget(slack);
 
 
 
