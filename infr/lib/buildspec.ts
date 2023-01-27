@@ -17,8 +17,8 @@ export const buildspec = {
       // 'on-failure': 'ABORT',
       commands: [
         'cd docker-app',
-        'python -m pytest -q --junitxml=reports/unittest.xml',
-        `docker build -t $ecr_repo_uri:$tag .`,
+        'docker build --target test .',
+        `docker build -t $ecr_repo_uri:$tag --target prod .`,
         '$(aws ecr get-login --no-include-email)',
         'docker push $ecr_repo_uri:$tag'
       ]
