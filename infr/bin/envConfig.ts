@@ -7,8 +7,10 @@ const env = process.env.DEPLOY_ENV || 'sandbox'
 export const deployEnvConfig: { [index: string]: any;} = {
     'sandbox': {
         account: '281115773576',
-        region: 'us-west-1',
-        vpcId: 'vpc-00734a9f1fb874cfa',
+        // region: 'us-west-1',
+        // vpcId: 'vpc-00734a9f1fb874cfa',
+        region: 'us-west-2',
+        vpcId: 'vpc-07cdcc143ea3ef289',
         mainInstanceCount: 1,
         minInstanceCount: 1,
         maxInstanceCount: 3,

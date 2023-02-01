@@ -26,7 +26,9 @@ export const publishBuildSpec = {
         ],
       },
       post_build: {
-        command: ['echo Package Publishing completed on `date`'],
+        commands: [
+            'echo Package Publishing completed on `date`'
+        ],
       },
     },
   };

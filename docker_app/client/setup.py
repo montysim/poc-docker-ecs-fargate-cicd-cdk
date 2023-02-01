@@ -6,7 +6,7 @@ https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 
 setup(
-    name = 'poc-movie-client',
+    name = 'vsl_poc_movie_client',
 
     version = '1.0.0',
 

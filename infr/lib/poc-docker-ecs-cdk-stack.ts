@@ -15,6 +15,7 @@ import { config } from '../bin/envConfig';
 import { buildspec } from './buildspec';
 import { publishBuildSpec } from './publishspec';
 import * as helper from './arnHelper';
+import { AccountPrincipal } from 'aws-cdk-lib/aws-iam';
 
 export class POCDockerEcsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -168,13 +169,13 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       ], 
     });
 
-    const topic = new cdk.aws_sns.Topic(this, 'SlackNotificationTopic');
+    // const topic = new cdk.aws_sns.Topic(this, 'SlackNotificationTopic');
 
-    const slack = new cdk.aws_chatbot.SlackChannelConfiguration(this, 'MySlackChannelBot', {
-      slackChannelConfigurationName: 'poc-aws-builds',
-      slackWorkspaceId: 'T7TPPJVC1',
-      slackChannelId: 'C04LG5GT5C7',
-    });
+    // const slack = new cdk.aws_chatbot.SlackChannelConfiguration(this, 'MySlackChannelBot', {
+    //   slackChannelConfigurationName: 'poc-aws-builds',
+    //   slackWorkspaceId: 'T7TPPJVC1',
+    //   slackChannelId: 'C04LG5GT5C7',
+    // });
 
     // codebuild - project
     // TODO: buildImage optimize?
@@ -199,15 +200,15 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       buildSpec: codebuild.BuildSpec.fromObject(buildspec)
     });
 
-    const rule = new cdk.aws_codestarnotifications.NotificationRule(this, 'NotificationRule', {
-      source: buildproject,
-      events: [
-        'codebuild-project-build-state-succeeded',
-        'codebuild-project-build-state-failed',
-      ],
-      targets: [topic],
-    });
-    rule.addTarget(slack);
+    // const rule = new cdk.aws_codestarnotifications.NotificationRule(this, 'NotificationRule', {
+    //   source: buildproject,
+    //   events: [
+    //     'codebuild-project-build-state-succeeded',
+    //     'codebuild-project-build-state-failed',
+    //   ],
+    //   targets: [topic],
+    // });
+    // rule.addTarget(slack);
 
 
 
@@ -244,6 +245,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     });
 
     const publishProject = new codebuild.PipelineProject(this, 'publish-build-pipe-proj', {
+      projectName: 'publishProj',
       buildSpec: codebuild.BuildSpec.fromObject(publishBuildSpec),
       environment: {
           computeType: codebuild.ComputeType.SMALL,
@@ -311,29 +313,27 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
     }));
 
     const codeArtifactArns = helper.generateCodeArtifactArns(this, domainName, pyRepoName);
+    console.log(`ARNS:\n ${codeArtifactArns}`)
+
+    const codeArtifactLookupStatements = [
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['codeartifact:*'],
+        resources: codeArtifactArns,
+      }),
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['sts:GetServiceBearerToken'],
+        resources: ['*'],
+      })
+    ]
     //Attach a new policy to the pipeline' publishing codebuild role to access the multi-region code artifact resources
-    const codeArtifactAccessPolicy = new iam.Policy(
+    const codeArtifactAccessPolicyBuilder = new iam.Policy(
       this,
-      'CodeArtifactAccessPolicy',
+      'CodeArtifactAccessPolicyBuilder',
       {
-        policyName: 'CodeArtifactAccessPolicy',
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ['codeartifact:*'],
-            resources: codeArtifactArns,
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ['sts:GetServiceBearerToken'],
-            resources: ['*'],
-            conditions: {
-              StringEquals: {
-                'sts:AWSServiceName': 'codeartifact.amazonaws.com',
-              },
-            },
-          }),
-        ],
+        policyName: 'CodeArtifactAccessPolicyBuilder',
+        statements: codeArtifactLookupStatements,
         roles: [publishProject.role!!],
       }
     );

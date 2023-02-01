@@ -18,7 +18,11 @@ const stackProps: cdk.StackProps = {
     region: config.region,
     account: config.account,
   },
-  stackName: config.stackName
+  stackName: config.stackName,
+  synthesizer: new cdk.DefaultStackSynthesizer({
+    fileAssetsBucketName: 'cdk-toolkit-assets-prod',
+    bucketPrefix: 'poc-ecs/',
+  }),
 };
 
 
