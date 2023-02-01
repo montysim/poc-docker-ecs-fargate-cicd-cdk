@@ -6,6 +6,13 @@
 export const buildspec = {
   version: "0.2",
   phases: {
+    install: {
+      commands: [
+        'echo install phase...',
+        'python3 -m pip install --upgrade pip',
+        'python3 -m pip install --upgrade build'
+      ]
+    },
     pre_build: {
       commands: [
         'env',
@@ -16,24 +23,34 @@ export const buildspec = {
       // 'run-as': 'verisim',
       // 'on-failure': 'ABORT',
       commands: [
-        'cd docker-app',
+        'echo build phase...',
+        'cd docker_app',
+
+        'echo python dist phase..',
+        'cd client',
+        'python3 -m build',
+        'ls ./dist',
+        'cd ..',
+
+        'echo docker build phase..',
         'docker build --target test .',
         `docker build -t $ecr_repo_uri:$tag --target prod .`,
         '$(aws ecr get-login --no-include-email)',
         'docker push $ecr_repo_uri:$tag'
-      ]
+      ],
     },
     post_build: {
       commands: [
         'echo "in post-build stage"',
         'cd ..',
-        "printf '[{\"name\":\"docker-app\",\"imageUri\":\"%s\"}]' $ecr_repo_uri:$tag > imagedefinitions.json",
+        "printf '[{\"name\":\"docker_app\",\"imageUri\":\"%s\"}]' $ecr_repo_uri:$tag > imagedefinitions.json",
         "pwd; ls -al; cat imagedefinitions.json"
       ]
     }
   },
   artifacts: {
     files: [
+      'docker_app/client/dist/*',
       'imagedefinitions.json'
     ]
   },
@@ -42,7 +59,7 @@ export const buildspec = {
       files: [
         'unittest.xml'
       ],
-      'base-directory': 'docker-app/reports',
+      'base-directory': 'docker_app/reports',
       'file-format': 'JUNITXML'
     }
   }

@@ -1,0 +1,6 @@
+setup.cfg
+setup.py
+poc_movie_client.egg-info/PKG-INFO
+poc_movie_client.egg-info/SOURCES.txt
+poc_movie_client.egg-info/dependency_links.txt
+poc_movie_client.egg-info/top_level.txt

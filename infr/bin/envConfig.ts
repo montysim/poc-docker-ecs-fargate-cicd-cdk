@@ -17,7 +17,7 @@ export const deployEnvConfig: { [index: string]: any;} = {
     'dev': {
 
     },
-    'stage': {
+    'test': {
 
     },
     'prod': {

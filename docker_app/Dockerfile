@@ -43,7 +43,7 @@ RUN sudo chown -R verisim:verisim /app
 
 FROM base as test
 RUN sudo -u verisim chmod 777 reports
-RUN sudo -u verisim /opt/conda/envs/vsl3.8/bin/python -m pytest -q --junitxml=reports/unittest.xml
+RUN sudo -u verisim /opt/conda/envs/vsl3.8/bin/python -m pytest -q --ignore=client --junitxml=reports/unittest.xml
 
 # ENTRYPOINT [ "/bin/bash", "-l", "-c" ]
 
