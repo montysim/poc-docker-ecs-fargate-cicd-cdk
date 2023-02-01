@@ -2,7 +2,7 @@ import requests
 
 def is_service_up():
     # url = 'http://localhost:8001'
-    url = 'http://internal-CfnCC-Farga-1D1GEV4DOFB2Q-1744603618.us-west-1.elb.amazonaws.com:80'
+    url = 'http://internal-Djang-DDEPO-RNDZ91Z4575E-810166248.us-west-2.elb.amazonaws.com:80'
     res = requests.get(url)
 
     response = 'UP'
