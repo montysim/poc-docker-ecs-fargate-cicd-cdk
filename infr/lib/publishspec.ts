@@ -22,6 +22,7 @@ export const publishBuildSpec = {
           'echo Entered the build phase...',
           'echo Package Publishing to CodeArtifact in ${region} started on `date`',
           '/usr/local/bin/aws codeartifact login --tool twine --domain ${domainName} --domain-owner ${domainOwner} --repository ${repositoryName} --region ${region}',
+          'ls -l ${buildPath}',
           'python3 -m twine upload --skip-existing --repository codeartifact ${buildPath} --verbose',
         ],
       },
