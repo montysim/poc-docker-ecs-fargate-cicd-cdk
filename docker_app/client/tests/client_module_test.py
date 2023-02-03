@@ -1,4 +1,4 @@
-import vsl_poc_movie_client.src.client_module as client
+import src.vsl_poc_movie_client.client_module as client
 import time
 
 start_time = time.time()

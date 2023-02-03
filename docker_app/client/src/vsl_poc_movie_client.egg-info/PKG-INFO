@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vsl-poc-movie-client
-Version: 1.0.0
+Version: 1.0.1
 Summary: An sample Python package
 License: MIT
 Requires-Python: >=3.6

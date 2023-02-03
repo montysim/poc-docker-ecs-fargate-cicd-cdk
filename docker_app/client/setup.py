@@ -12,11 +12,11 @@ setup(
 
     description = 'An sample Python package',
     license = 'MIT',
-    package_dir = {"": "vsl_poc_movie_client"},
+    package_dir = {"": "src"},
     include_package_data=True,
     packages = find_packages(
         # includes dirs with __init__.py
-        where="vsl_poc_movie_client",
+        where="src",
         # include="*",
         exclude=["tests"]
     ),

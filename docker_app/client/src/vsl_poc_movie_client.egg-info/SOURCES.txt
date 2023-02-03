@@ -1,0 +1,9 @@
+setup.cfg
+setup.py
+src/vsl_poc_movie_client/__init__.py
+src/vsl_poc_movie_client/client.py
+src/vsl_poc_movie_client.egg-info/PKG-INFO
+src/vsl_poc_movie_client.egg-info/SOURCES.txt
+src/vsl_poc_movie_client.egg-info/dependency_links.txt
+src/vsl_poc_movie_client.egg-info/requires.txt
+src/vsl_poc_movie_client.egg-info/top_level.txt
