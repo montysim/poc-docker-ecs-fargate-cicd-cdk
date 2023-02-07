@@ -32,8 +32,10 @@ export const buildspec = {
         'ls ./dist',
         'cd ..',
 
+        'echo python test phase..',
+        'python -m pytest -q --ignore=client --junitxml=reports/unittest.xml',
+
         'echo docker build phase..',
-        'docker build --target test .',
         `docker build -t $ecr_repo_uri:$tag --target prod .`,
         '$(aws ecr get-login --no-include-email)',
         'docker push $ecr_repo_uri:$tag'

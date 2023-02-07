@@ -5,10 +5,13 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
 import * as codeartifact from 'aws-cdk-lib/aws-codeartifact';
 import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 
 import { config } from '../bin/envConfig';
@@ -169,14 +172,6 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       ], 
     });
 
-    // const topic = new cdk.aws_sns.Topic(this, 'SlackNotificationTopic');
-
-    // const slack = new cdk.aws_chatbot.SlackChannelConfiguration(this, 'MySlackChannelBot', {
-    //   slackChannelConfigurationName: 'poc-aws-builds',
-    //   slackWorkspaceId: 'T7TPPJVC1',
-    //   slackChannelId: 'C04LG5GT5C7',
-    // });
-
     // codebuild - project
     // TODO: buildImage optimize?
     const buildproject = new codebuild.Project(this, 'my-build-Project', {
@@ -200,14 +195,40 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       buildSpec: codebuild.BuildSpec.fromObject(buildspec)
     });
 
-    // const rule = new cdk.aws_codestarnotifications.NotificationRule(this, 'NotificationRule', {
-    //   source: buildproject,
-    //   events: [
-    //     'codebuild-project-build-state-succeeded',
-    //     'codebuild-project-build-state-failed',
-    //   ],
-    //   targets: [topic],
+    // const topicToSlack = new cdk.aws_sns.Topic(this, 'SlackNotificationTopic');
+    const topicFromBuild = new cdk.aws_sns.Topic(this, 'BuildNotificationTopic');
+
+    // const slack = new cdk.aws_chatbot.SlackChannelConfiguration(this, 'MySlackChannelBot', {
+    //   slackChannelConfigurationName: 'poc-aws-builds',
+    //   slackWorkspaceId: 'T7TPPJVC1',
+    //   slackChannelId: 'C04LG5GT5C7',
+    //   notificationTopics: [ topicToSlack ]
     // });
+
+    const lambdaFunc = new lambda.Function(this, 'funcName', {
+      code: lambda.Code.fromAsset("lambda"),
+      timeout: cdk.Duration.seconds(60),
+      runtime: lambda.Runtime.PYTHON_3_8,
+      handler: 'slackMessager.lambda_handler',
+      environment: {
+        // 'SNS_ARN': topicToSlack.topicArn
+      }
+    });
+
+    topicFromBuild.addSubscription(
+      new cdk.aws_sns_subscriptions.LambdaSubscription(lambdaFunc));
+
+    // topicToSlack.grantPublish(lambdaFunc);
+
+    const rule = new cdk.aws_codestarnotifications.NotificationRule(this, 'NotificationRule', {
+      source: buildproject,
+      events: [
+        'codebuild-project-build-state-succeeded',
+        'codebuild-project-build-state-failed',
+      ],
+      targets: [topicFromBuild]
+      // targets: [topic],
+    });
     // rule.addTarget(slack);
 
 

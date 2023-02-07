@@ -1,1 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="0.037" timestamp="2023-01-27T11:42:32.527069" hostname="vsl-local-vm"><testcase classname="tests.test_poc" name="test_successFunc" time="0.001" /><testcase classname="tests.test_poc" name="test_throwingFunc" time="0.001" /></testsuite></testsuites>
