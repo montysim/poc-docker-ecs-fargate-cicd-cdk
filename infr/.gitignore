@@ -8,3 +8,4 @@ node_modules
 cdk.out
 
 docker_app/client/dist
+docker_app/reports

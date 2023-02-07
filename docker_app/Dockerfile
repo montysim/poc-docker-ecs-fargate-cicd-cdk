@@ -41,9 +41,13 @@ RUN sudo -u verisim /opt/conda/envs/vsl3.8/bin/pip install -r /app/requirements.
 
 RUN sudo chown -R verisim:verisim /app
 
-FROM base as test
+FROM base AS tests
 RUN sudo -u verisim chmod 777 reports
-RUN sudo -u verisim /opt/conda/envs/vsl3.8/bin/python -m pytest -q --ignore=client --junitxml=reports/unittest.xml
+RUN sudo -u verisim /opt/conda/envs/vsl3.8/bin/python -m pytest -q --ignore-glob=**client** --junitxml=reports/unittest.xml
+
+FROM scratch AS export-tests
+COPY --from=tests /app/reports /
+
 
 # ENTRYPOINT [ "/bin/bash", "-l", "-c" ]
 

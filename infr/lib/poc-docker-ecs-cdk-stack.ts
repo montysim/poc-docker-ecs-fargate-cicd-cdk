@@ -40,6 +40,11 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
         description: "GitHub Personal Access Token for this project.",
     })
 
+    const slackUrl = new cdk.CfnParameter(this, "slackUrl", {
+      type: "String",
+      description: "slack workspace url",
+  })
+
     // TODO: Update removalPolicy based on env
     // TODO: RemovalPolicy destroy wont if images exist
     const ecrRepo = new ecr.Repository(this, `${config.stackPrefix}-EcrRepo`, {
@@ -76,8 +81,6 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       repositoryName: pyRepoName,
     });
     codeArtifactRepostory.addDependsOn(codeArtifactDomain);
-
-    
 
     const pyRepoBucket = new s3.Bucket(this, 'ArtifactBucket', {
       bucketName: 'poc-python-repo'
@@ -212,6 +215,7 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
       handler: 'slackMessager.lambda_handler',
       environment: {
         // 'SNS_ARN': topicToSlack.topicArn
+        'SLACK_HOOK_URL': slackUrl.valueAsString
       }
     });
 

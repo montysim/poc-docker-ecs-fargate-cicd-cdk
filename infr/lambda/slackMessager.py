@@ -49,12 +49,11 @@ def build_slack_message(message):
     }
     return payload
 
-SLACK_HOOK_URL = 'https://hooks.slack.com/services/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'
 def lambda_handler(event, context):
     message = event['Records'][0]['Sns']['Message']
 
     slack_msg = build_slack_message(message)
 
-    post(SLACK_HOOK_URL, slack_msg)
-    
+    post(os.getenv('SLACK_HOOK_URL'), slack_msg)
+
     return {'statusCode': 200}
