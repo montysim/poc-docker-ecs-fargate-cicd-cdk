@@ -18,7 +18,7 @@ import { config } from '../bin/envConfig';
 import { buildspec } from './buildspec';
 import { publishBuildSpec } from './publishspec';
 import * as helper from './arnHelper';
-import { AccountPrincipal } from 'aws-cdk-lib/aws-iam';
+import { AccountPrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 export class POCDockerEcsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -218,6 +218,11 @@ export class POCDockerEcsCdkStack extends cdk.Stack {
         'SLACK_HOOK_URL': slackUrl.valueAsString
       }
     });
+
+    lambdaFunc.addToRolePolicy(new PolicyStatement({
+      actions: ['codebuild:BatchGetReports'],
+      resources: ['*']
+    }))
 
     topicFromBuild.addSubscription(
       new cdk.aws_sns_subscriptions.LambdaSubscription(lambdaFunc));
