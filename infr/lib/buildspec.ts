@@ -34,6 +34,7 @@ export const buildspec = {
         'rm -rf reports/*',
 
         'echo docker build phase..',
+        'export DOCKER_BUILDKIT=1',
         'docker build --target export-tests . -o reports',
         `docker build -t $ecr_repo_uri:$tag --target prod .`,
         '$(aws ecr get-login --no-include-email)',

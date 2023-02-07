@@ -7,5 +7,7 @@ node_modules
 .cdk.staging
 cdk.out
 
-docker_app/client/dist
-docker_app/reports
+# exclude lambda dependencies
+lambda/*
+# include lambda code
+!lambda/slackMessager.py

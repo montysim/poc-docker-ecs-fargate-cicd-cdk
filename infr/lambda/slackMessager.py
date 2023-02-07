@@ -1,10 +1,14 @@
 import os
 import boto3
-import requests
+import urllib3
 import re
+import json
 
+DEFAULT_HEADERS = {'Content-Type': 'application/json'}
 def post(url, payload):
-    return requests.post(url, data = payload).json()
+    encoded_data = json.dumps(payload).encode('utf-8')
+    http = urllib3.PoolManager()
+    http.request('POST', url, headers = DEFAULT_HEADERS, body = encoded_data)
         
 def get_test_reports_summary(reportArns = []): 
     client = boto3.client('codebuild')
@@ -25,7 +29,9 @@ BUILD_ID_REGEX = '(?<=:build/).*$'
 BUILD_URL_TEMPLATE = 'https://%s.console.aws.amazon.com/codesuite/codebuild/projects/%s/build/%s/phase?region=%s'
 def build_slack_message(message):
     reportsArns = message['detail']['additional-information']['reportArns']
-    report_summ = get_test_reports_summary(reportsArns)
+    
+    if reportsArns:
+        report_summ = get_test_reports_summary(reportsArns)
 
     region = message['region']
     project = message['detail']['project-name']
@@ -34,16 +40,20 @@ def build_slack_message(message):
     build_status = message['detail']['build-status']
     build_url = BUILD_URL_TEMPLATE.format(region, project, build_id, region)
 
+    test_report = 'Tests %s with %d failures of %d\n'%(
+            report_summ.status, 
+            report_summ.failedTests, 
+            report_summ.totalTests)
+    test_output = test_report if report_summ else 'No tests reported\n'
+
     payload = {
         'username': 'VSL Build Monitor',
         'text': '%s build for %s\n\
-                Tests %s with %d failures of %d\n\
+                %s\
                 Details <%s|here>'%(
             build_status, 
             project, 
-            report_summ.status, 
-            report_summ.failedTests, 
-            report_summ.totalTests,
+            test_output,
             build_url
         )
     }
