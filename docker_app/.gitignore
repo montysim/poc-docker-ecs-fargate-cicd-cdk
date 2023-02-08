@@ -1,2 +1,3 @@
 client/dist
 reports/*.xml
+**/__pycache__

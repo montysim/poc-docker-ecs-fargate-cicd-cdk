@@ -46,8 +46,10 @@ RUN sudo -u verisim chmod 777 reports
 
 # Run tests but fail gracefully for export-tests phase
 RUN if /opt/conda/envs/vsl3.8/bin/python -m pytest -q --ignore-glob=**client** --junitxml=reports/unittest.xml; then : else echo "Tests failed"; fi
+RUN ls reports
 
 FROM scratch AS export-tests
+WORKDIR /
 COPY --from=tests /app/reports /
 
 
