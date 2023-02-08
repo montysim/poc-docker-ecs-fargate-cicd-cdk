@@ -23,7 +23,6 @@ def get_test_reports_summary(message):
         if reportArns:
             client = boto3.client('codebuild')
             response = client.batch_get_reports(reportArns = reportArns)
-
             if response['reports']:
                 account = message['account']
                 region = message['region']
@@ -70,6 +69,8 @@ def build_slack_message(message):
     # TODO: check repo for duplicate version 'Version dup fail'
     phases = message['detail']['additional-information']['phases']
     for phase in phases:
+        if 'phase-status' not in phase.keys():
+            continue
         isFail = 'FAILED' in phase['phase-status']
         if isFail and 'VSL TESTS FAILED' in phase['phase-context'][0]:
             error_msg = 'Unit test fail'
@@ -94,7 +95,7 @@ def build_slack_message(message):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": "*Initiator:*\n%s"(initiator)
+                        "text": "*Initiator:*\n%s"%(initiator)
                     }
                 ]
             },
