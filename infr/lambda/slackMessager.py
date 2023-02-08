@@ -18,29 +18,32 @@ def post(url, payload):
     http.request('POST', url, headers = DEFAULT_HEADERS, body = encoded_data)
         
 def get_test_reports_summary(message): 
-    reportArns = message['detail']['additional-information']['reportArns']
-    if reportArns:
-        client = boto3.client('codebuild')
-        response = client.batch_get_reports(reportArns = reportArns)
+    try:
+        reportArns = message['detail']['additional-information']['reportArns']
+        if reportArns:
+            client = boto3.client('codebuild')
+            response = client.batch_get_reports(reportArns = reportArns)
 
-        if response['reports']:
-            account = message['account']
-            region = message['region']
-            fullReportArn = re.search(TEST_REPORT_REGEX, message['detail']['additional-information']['reportArns']).group()
-            stackReportName = fullReportArn.split(':')[0]
-            report_url = TEST_REPORT_URL_TEMPLATE.format(region, account, stackReportName, fullReportArn, region)
-            
-            report = response['reports'][0]
-            print("REPORT: ", report)
+            if response['reports']:
+                account = message['account']
+                region = message['region']
+                fullReportArn = re.search(TEST_REPORT_REGEX, reportArns[0]).group()
+                stackReportName = fullReportArn.split(':')[0]
+                report_url = TEST_REPORT_URL_TEMPLATE.format(region, account, stackReportName, fullReportArn, region)
+                
+                report = response['reports'][0]
+                print("REPORT: ", report)
 
-            statusWithUrl = '<%s|%s>'%(report_url, report['status'])
-            
-            return '%s with %d failures of %d\n'%(
-                    statusWithUrl,
-                    # 'successTests': report['testSummary']['statusCounts']['SUCCEEDED'] if report['testSummary']['statusCounts']['SUCCEEDED'] else 0,
-                    report['testSummary']['statusCounts']['FAILED'] if report['testSummary']['statusCounts']['FAILED'] else 0,
-                    report['testSummary']['total'] if report['testSummary']['total'] else 0,
-                )
+                statusWithUrl = '<%s|%s>'%(report_url, report['status'])
+                
+                return '%s with %d failures of %d\n'%(
+                        statusWithUrl,
+                        # 'successTests': report['testSummary']['statusCounts']['SUCCEEDED'] if report['testSummary']['statusCounts']['SUCCEEDED'] else 0,
+                        report['testSummary']['statusCounts']['FAILED'] if report['testSummary']['statusCounts']['FAILED'] else 0,
+                        report['testSummary']['total'] if report['testSummary']['total'] else 0,
+                    )
+    except Exception as e:
+        print('Exception while getting reports: ', e)
     return 'No tests reported\n'
 
 def build_slack_message(message):
@@ -73,6 +76,7 @@ def build_slack_message(message):
         elif isFail:
             error_msg = 'Unknown'
 
+    # Build a preview at https://app.slack.com/block-kit-builder/T7TPPJVC1 
     payload = {
         'username': 'VSL Build Monitor',
         'text': 'New build information',
@@ -115,7 +119,10 @@ def build_slack_message(message):
                         "text": "*Error*: %s"%(error_msg)
                     }
                 ]
-            }
+            },
+            {
+			    "type": "divider"
+		    }
 	    ]
     }
     return payload
