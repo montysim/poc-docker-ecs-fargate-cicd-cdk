@@ -26,16 +26,22 @@ export const buildspec = {
         'echo build phase...',
         'cd docker_app',
 
-        'echo python dist phase..',
+        'echo python dist phase...',
         'cd client',
         'python3 -m build',
         'ls ./dist',
         'cd ..',
         'rm -rf reports/*',
 
-        'echo docker build phase..',
+        'echo docker test build phase...',
+        // run tests in container and copy reports to ./reports
         'export DOCKER_BUILDKIT=1',
         'docker build --target export-tests . -o reports',
+        // fail for AWS CodeBuild
+        `if ! (cat reports/unittest.xml | grep Fail); then echo 'VSL TESTS FAILED' && exit 1; fi`,
+        'echo VSL TESTS PASSED',
+        
+        'echo docker build and push phase...',
         `docker build -t $ecr_repo_uri:$tag --target prod .`,
         '$(aws ecr get-login --no-include-email)',
         'docker push $ecr_repo_uri:$tag'
