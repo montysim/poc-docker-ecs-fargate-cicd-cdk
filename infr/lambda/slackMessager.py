@@ -92,16 +92,16 @@ def build_slack_message(message):
                     {
                         "type": "mrkdwn",
                         "text": "*Project:*\n%s"%(project)
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Initiator:*\n%s"%(initiator)
                     }
                 ]
             },
             {
                 "type": "section",
                 "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Initiator:*\n%s"%(initiator)
+                    },
                     {
                         "type": "mrkdwn",
                         "text": "*Tests:*\n%s"%(report_summ)

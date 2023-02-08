@@ -27,4 +27,6 @@ const stackProps: cdk.StackProps = {
 
 
 new POCDockerEcsCdkStack(app, config.stackName, stackProps);
+// TODO
+// Tags.of(theBestStack).add('StackType', 'TheBest');
 
