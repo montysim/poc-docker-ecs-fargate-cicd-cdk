@@ -37,7 +37,7 @@ export const buildspec = {
         // run tests in container and copy reports to ./reports
         'DOCKER_BUILDKIT=1 docker build --target export-tests . -o ./reports',
         // fail for AWS CodeBuild
-        `if (cat ./reports/unittest.xml | grep 'fail'); then echo 'VSL TESTS FAILED' && exit 1; fi`,
+        `if (cat ./reports/unittest.xml | grep '<failure'); then echo 'VSL TESTS FAILED' && exit 1; fi`,
         'echo VSL TESTS PASSED',
         
         'echo docker build and push phase...',
